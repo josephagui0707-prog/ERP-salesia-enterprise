@@ -1,0 +1,30 @@
+SALESIA ENTERPRISE — REACT + TYPESCRIPT + VITE
+==============================================
+
+INICIO RAPIDO EN WINDOWS
+1. Extrae todo el ZIP.
+2. Instala Node.js LTS desde https://nodejs.org/ si no lo tienes.
+3. Entra a la carpeta SalesIA-React-Vite.
+4. Haz doble clic en INICIAR.bat.
+5. La primera vez descargara las dependencias de React y Vite. Necesitas Internet.
+6. Se abrira el navegador en la direccion local que muestre Vite.
+
+INICIO DESDE VISUAL STUDIO CODE
+Abre la carpeta del proyecto y ejecuta en Terminal:
+
+  npm install
+  npm run dev
+
+COMANDOS UTILES
+  npm run dev       Inicia desarrollo
+  npm run build     Comprueba TypeScript y compila a dist/
+  npm run preview   Previsualiza la compilacion
+  npm run test:legacy  Prueba las 33 vistas y operaciones basicas
+
+IMPORTANTE
+- No abras index.html directamente: Vite inicia el proyecto desde la terminal.
+- Los datos de demostracion se guardan en localStorage de este navegador.
+- La interfaz conserva el diseno y las funciones de la demo original.
+- La carcasa de navegacion esta en React + TypeScript; el motor de vistas
+  sigue en src/legacy/app.js como puente para preservar la funcionalidad.
+- No tiene backend ni autenticacion segura. No ingreses datos sensibles.
