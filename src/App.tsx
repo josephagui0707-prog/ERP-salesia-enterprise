@@ -14,6 +14,13 @@ const roleLabels: Record<string, string> = {
   administrador: 'Administrador', gerente: 'Gerente', vendedor: 'Vendedor', analista: 'Analista', almacen: 'Almacén', pendiente: 'Pendiente',
 };
 
+function businessCode(prefix: string): string {
+  const suffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID().slice(0, 8).toUpperCase()
+    : Math.random().toString(36).slice(2, 10).toUpperCase();
+  return `${prefix}-${new Date().getFullYear()}-${suffix}`;
+}
+
 function getErrorMessage(error: unknown, fallback: string): string {
   if (typeof error === 'string' && error.trim()) return error;
   if (error && typeof error === 'object') {
@@ -118,7 +125,70 @@ export default function App() {
       organization: companyName,
     };
     window.salesiaOpenCreateUser = isAdmin ? () => setAccountOpen(true) : undefined;
-    return () => { window.salesiaOpenCreateUser = undefined; };
+    const organizationId = profile?.organization_id;
+    const actorId = profile?.id;
+    const maintenanceApi = organizationId && actorId ? {
+      async load() {
+        const [categoryResult, customerResult] = await Promise.all([
+          supabase.from('categories')
+            .select('id,code,name,description,is_active')
+            .eq('organization_id', organizationId)
+            .order('name', { ascending: true }),
+          supabase.from('customers')
+            .select('id,code,name,email,phone,address,segment,status,notes')
+            .eq('organization_id', organizationId)
+            .order('name', { ascending: true }),
+        ]);
+        if (categoryResult.error) throw categoryResult.error;
+        if (customerResult.error) throw customerResult.error;
+        return {
+          categories: categoryResult.data || [],
+          customers: customerResult.data || [],
+        };
+      },
+      async saveCategory(id: string | null, input: { name: string; description: string; is_active: boolean }) {
+        const values = {
+          name: input.name.trim(),
+          description: input.description.trim() || null,
+          is_active: input.is_active,
+        };
+        if (id) {
+          const { data, error } = await supabase.from('categories')
+            .update(values).eq('organization_id', organizationId).eq('id', id).select('id').maybeSingle();
+          if (error) throw error;
+          if (!data) throw new Error('No se actualizó la categoría. Comprueba tus permisos y vuelve a intentarlo.');
+        } else {
+          const { error } = await supabase.from('categories').insert({
+            organization_id: organizationId, code: businessCode('CAT'), ...values,
+          });
+          if (error) throw error;
+        }
+      },
+      async saveCustomer(id: string | null, input: { name: string; email: string; phone: string; address: string; segment: string; status: string; notes: string }) {
+        const values = {
+          name: input.name.trim(), email: input.email.trim() || null,
+          phone: input.phone.trim() || null, address: input.address.trim() || null,
+          segment: input.segment.toLowerCase(), status: input.status.toLowerCase(),
+          notes: input.notes.trim() || null,
+        };
+        if (id) {
+          const { data, error } = await supabase.from('customers')
+            .update(values).eq('organization_id', organizationId).eq('id', id).select('id').maybeSingle();
+          if (error) throw error;
+          if (!data) throw new Error('No se actualizó el cliente. Comprueba tus permisos y vuelve a intentarlo.');
+        } else {
+          const { error } = await supabase.from('customers').insert({
+            organization_id: organizationId, code: businessCode('CLI'), created_by: actorId, ...values,
+          });
+          if (error) throw error;
+        }
+      },
+    } : undefined;
+    window.salesiaMaintenanceApi = maintenanceApi;
+    return () => {
+      window.salesiaOpenCreateUser = undefined;
+      if (window.salesiaMaintenanceApi === maintenanceApi) window.salesiaMaintenanceApi = undefined;
+    };
   }, [accounts, profile, session, companyName, isAdmin]);
 
   useEffect(() => {
@@ -217,7 +287,7 @@ export default function App() {
     <Sidebar companyName={companyName} />
     <div className="shell">
       <Topbar name={profile?.full_name || session?.user.email || 'Usuario'} email={profile?.email || session?.user.email || ''} role={roleLabels[profile?.role_key || ''] || 'Usuario'} isAdmin={isAdmin} onLogout={signOut} />
-      <div className="migration-note"><strong>Sesión protegida con Supabase.</strong> En esta etapa, los módulos comerciales existentes aún conservan su almacenamiento local; su migración completa a las tablas nuevas es el siguiente paso.</div>
+      <div className="migration-note"><strong>Sesión protegida con Supabase.</strong> Mantenimiento ya consulta y guarda Categorías y Clientes en la base de datos. Productos, Vendedores, Ventas, Pedidos, Inventario, Analítica, Insights y Reportes siguen pendientes de migración; no uses sus datos de demostración como operaciones reales.</div>
       <main id="content" tabIndex={-1}>
         {authError && <div className="callout" role="status">{authError}</div>}
         {engineError && <section className="panel" role="alert"><div className="panel-body"><h2>No se pudo iniciar SalesIA</h2><p className="description">Actualiza la página. Si el problema continúa, revisa la consola del navegador.</p></div></section>}
