@@ -1,0 +1,36 @@
+SALESIA ENTERPRISE — REACT + TYPESCRIPT + SUPABASE
+================================================
+
+ANTES DE INICIAR
+1. Configura el proyecto Supabase siguiendo docs/SUPABASE_SETUP.md.
+2. Ejecuta en Supabase SQL Editor el archivo:
+   supabase/migrations/001_salesia_enterprise.sql
+3. Desactiva el registro público en Authentication > Sign In / Providers > Email.
+4. Crea manualmente el primer usuario desde Authentication > Users; ese usuario
+   configurará la empresa y será el administrador inicial.
+5. Copia .env.example a .env y completa la URL y clave pública de Supabase.
+
+INICIO RAPIDO EN WINDOWS
+1. Extrae todo el ZIP.
+2. Instala Node.js LTS reciente desde https://nodejs.org/ si no lo tienes.
+3. Ejecuta INICIAR.bat. La instalación inicial de dependencias necesita Internet.
+4. Se abrirá el navegador en la dirección local de Vite.
+
+INICIO DESDE VISUAL STUDIO CODE
+  npm install
+  npm run dev
+
+COMANDOS UTILES
+  npm run dev          Inicia desarrollo
+  npm run build        Comprueba TypeScript y compila a dist/
+  npm run preview      Previsualiza la compilación
+  npm run test:legacy  Prueba 9 módulos, 32 vistas y operaciones de demostración
+
+IMPORTANTE
+- No abras index.html directamente: inicia el proyecto con Vite.
+- No pongas service_role ni claves secretas en .env del frontend.
+- La autenticación, los perfiles y el alta de cuentas están preparados para Supabase.
+- Las pantallas operativas heredadas todavía usan localStorage y datos ficticios;
+  no uses esta fase con datos empresariales reales hasta migrar las operaciones.
+- La carcasa de navegación usa React + TypeScript; el motor de vistas se mantiene
+  en src/legacy/app.js como puente de compatibilidad.
