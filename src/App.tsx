@@ -129,22 +129,17 @@ export default function App() {
     const actorId = profile?.id;
     const maintenanceApi = organizationId && actorId ? {
       async load() {
-        const [categoryResult, customerResult] = await Promise.all([
-          supabase.from('categories')
-            .select('id,code,name,description,is_active')
-            .eq('organization_id', organizationId)
-            .order('name', { ascending: true }),
-          supabase.from('customers')
-            .select('id,code,name,email,phone,address,segment,status,notes')
-            .eq('organization_id', organizationId)
-            .order('name', { ascending: true }),
+        const [categoryResult, customerResult, productResult, sellerResult] = await Promise.all([
+          supabase.from('categories').select('id,code,name,description,is_active').eq('organization_id', organizationId).order('name', { ascending: true }),
+          supabase.from('customers').select('id,code,name,email,phone,address,segment,status,notes').eq('organization_id', organizationId).order('name', { ascending: true }),
+          supabase.from('products').select('id,code,name,category_id,description,unit,price,cost,stock_quantity,minimum_stock,status').eq('organization_id', organizationId).order('name', { ascending: true }),
+          supabase.from('sellers').select('id,code,name,email,phone,monthly_goal,status,profile_id').eq('organization_id', organizationId).order('name', { ascending: true }),
         ]);
         if (categoryResult.error) throw categoryResult.error;
         if (customerResult.error) throw customerResult.error;
-        return {
-          categories: categoryResult.data || [],
-          customers: customerResult.data || [],
-        };
+        if (productResult.error) throw productResult.error;
+        if (sellerResult.error) throw sellerResult.error;
+        return { categories: categoryResult.data || [], customers: customerResult.data || [], products: productResult.data || [], sellers: sellerResult.data || [] };
       },
       async saveCategory(id: string | null, input: { name: string; description: string; is_active: boolean }) {
         const values = {
@@ -180,6 +175,35 @@ export default function App() {
           const { error } = await supabase.from('customers').insert({
             organization_id: organizationId, code: businessCode('CLI'), created_by: actorId, ...values,
           });
+          if (error) throw error;
+        }
+      },
+      async saveProduct(id: string | null, input: { name: string; category_id: string | null; description: string; unit: string; price: number; cost: number; minimum_stock: number; status: string }) {
+        const values = { name: input.name.trim(), category_id: input.category_id || null, description: input.description.trim() || null, unit: input.unit.trim() || 'unidad', price: Number(input.price), cost: Number(input.cost), minimum_stock: Number(input.minimum_stock), status: input.status.toLowerCase() };
+        if (!(values.price >= 0) || !(values.cost >= 0) || !Number.isInteger(values.minimum_stock) || values.minimum_stock < 0) throw new Error('Revisa precio, costo y stock mínimo.');
+        if (values.category_id) {
+          const { data: category, error: categoryError } = await supabase.from('categories').select('id').eq('organization_id', organizationId).eq('id', values.category_id).maybeSingle();
+          if (categoryError) throw categoryError;
+          if (!category) throw new Error('La categoría seleccionada no pertenece a esta empresa.');
+        }
+        if (id) {
+          const { data, error } = await supabase.from('products').update(values).eq('organization_id', organizationId).eq('id', id).select('id').maybeSingle();
+          if (error) throw error;
+          if (!data) throw new Error('No se actualizó el producto. Comprueba tus permisos.');
+        } else {
+          const { error } = await supabase.from('products').insert({ organization_id: organizationId, code: businessCode('PRD'), ...values, stock_quantity: 0 });
+          if (error) throw error;
+        }
+      },
+      async saveSeller(id: string | null, input: { name: string; email: string; phone: string; monthly_goal: number; status: string }) {
+        const values = { name: input.name.trim(), email: input.email.trim() || null, phone: input.phone.trim() || null, monthly_goal: Number(input.monthly_goal), status: input.status.toLowerCase() };
+        if (!(values.monthly_goal >= 0)) throw new Error('La meta comercial debe ser cero o mayor.');
+        if (id) {
+          const { data, error } = await supabase.from('sellers').update(values).eq('organization_id', organizationId).eq('id', id).select('id').maybeSingle();
+          if (error) throw error;
+          if (!data) throw new Error('No se actualizó el vendedor. Comprueba tus permisos.');
+        } else {
+          const { error } = await supabase.from('sellers').insert({ organization_id: organizationId, code: businessCode('VEN'), ...values });
           if (error) throw error;
         }
       },
@@ -287,7 +311,7 @@ export default function App() {
     <Sidebar companyName={companyName} />
     <div className="shell">
       <Topbar name={profile?.full_name || session?.user.email || 'Usuario'} email={profile?.email || session?.user.email || ''} role={roleLabels[profile?.role_key || ''] || 'Usuario'} isAdmin={isAdmin} onLogout={signOut} />
-      <div className="migration-note"><strong>Sesión protegida con Supabase.</strong> Mantenimiento ya consulta y guarda Categorías y Clientes en la base de datos. Productos, Vendedores, Ventas, Pedidos, Inventario, Analítica, Insights y Reportes siguen pendientes de migración; no uses sus datos de demostración como operaciones reales.</div>
+      <div className="migration-note"><strong>Sesión protegida con Supabase.</strong> Mantenimiento consulta y guarda Categorías, Clientes, Productos y Vendedores en Supabase. Ventas, Pedidos, Inventario, Analítica, Insights y Reportes siguen pendientes de migración; no uses sus datos de demostración como operaciones reales.</div>
       <main id="content" tabIndex={-1}>
         {authError && <div className="callout" role="status">{authError}</div>}
         {engineError && <section className="panel" role="alert"><div className="panel-body"><h2>No se pudo iniciar SalesIA</h2><p className="description">Actualiza la página. Si el problema continúa, revisa la consola del navegador.</p></div></section>}
