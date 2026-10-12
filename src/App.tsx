@@ -209,9 +209,117 @@ export default function App() {
       },
     } : undefined;
     window.salesiaMaintenanceApi = maintenanceApi;
+    const inventoryApi = organizationId && actorId ? {
+      async load() {
+        const [productResult, categoryResult, movementResult] = await Promise.all([
+          supabase.from('products')
+            .select('id,code,name,category_id,price,cost,stock_quantity,minimum_stock,status')
+            .eq('organization_id', organizationId).order('name', { ascending: true }),
+          supabase.from('categories')
+            .select('id,name').eq('organization_id', organizationId).order('name', { ascending: true }),
+          supabase.from('inventory_movements')
+            .select('id,product_id,movement_type,quantity,reason,unit_cost,created_by,created_at,related_sale_id')
+            .eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(500),
+        ]);
+        if (productResult.error) throw productResult.error;
+        if (categoryResult.error) throw categoryResult.error;
+        if (movementResult.error) throw movementResult.error;
+        const categories = categoryResult.data || [];
+        return {
+          products: (productResult.data || []).map(product => ({
+            ...product,
+            category_name: categories.find(category => category.id === product.category_id)?.name || null,
+          })),
+          movements: movementResult.data || [],
+        };
+      },
+      async registerMovement(input: { product_id: string; movement_type: 'entrada' | 'salida' | 'ajuste'; quantity: number; reason: string; unit_cost: number | null }) {
+        const { error } = await supabase.rpc('register_inventory_movement', {
+          p_product_id: input.product_id,
+          p_type: input.movement_type,
+          p_quantity: input.quantity,
+          p_reason: input.reason.trim(),
+          p_unit_cost: input.unit_cost,
+        });
+        if (error) throw error;
+      },
+    } : undefined;
+    window.salesiaInventoryApi = inventoryApi;
+    const operationsApi = organizationId && actorId ? {
+      async load() {
+        const [categoryResult, customerResult, productResult, sellerResult, saleResult, orderResult, paymentResult] = await Promise.all([
+          supabase.from('categories').select('id,name').eq('organization_id', organizationId).order('name', { ascending: true }),
+          supabase.from('customers').select('id,code,name,email,phone,segment,status').eq('organization_id', organizationId).order('name', { ascending: true }),
+          supabase.from('products').select('id,code,name,category_id,price,cost,stock_quantity,minimum_stock,status').eq('organization_id', organizationId).order('name', { ascending: true }),
+          supabase.from('sellers').select('id,code,name,email,phone,monthly_goal,status').eq('organization_id', organizationId).order('name', { ascending: true }),
+          supabase.from('sales').select('id,code,sold_at,customer_id,seller_id,status,subtotal,total,notes,created_at').eq('organization_id', organizationId).order('sold_at', { ascending: false }),
+          supabase.from('orders').select('id,code,order_date,customer_id,seller_id,status,total,notes,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }),
+          supabase.from('payments').select('id,sale_id,amount,method,status,reference,paid_at,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }),
+        ]);
+        for (const result of [categoryResult, customerResult, productResult, sellerResult, saleResult, orderResult, paymentResult]) {
+          if (result.error) throw result.error;
+        }
+        const sales = saleResult.data || [];
+        const orders = orderResult.data || [];
+        let saleItems: Array<{ id: string; sale_id: string; product_id: string; quantity: number; unit_price: number }> = [];
+        let orderItems: Array<{ id: string; order_id: string; product_id: string; quantity: number; unit_price: number }> = [];
+        if (sales.length) {
+          const result = await supabase.from('sale_items').select('id,sale_id,product_id,quantity,unit_price').in('sale_id', sales.map(row => row.id));
+          if (result.error) throw result.error;
+          saleItems = result.data || [];
+        }
+        if (orders.length) {
+          const result = await supabase.from('order_items').select('id,order_id,product_id,quantity,unit_price').in('order_id', orders.map(row => row.id));
+          if (result.error) throw result.error;
+          orderItems = result.data || [];
+        }
+        return {
+          categories: categoryResult.data || [], customers: customerResult.data || [], products: productResult.data || [], sellers: sellerResult.data || [],
+          sales, saleItems, orders, orderItems, payments: paymentResult.data || [],
+        };
+      },
+      async registerSale(input: { customer_id: string; seller_id: string; items: Array<{ product_id: string; quantity: number }>; status: 'pendiente' | 'pagada'; method: 'efectivo' | 'tarjeta' | 'transferencia' | 'yape' | 'plin' | 'otro'; notes: string }) {
+        const { data, error } = await supabase.rpc('register_sale', {
+          p_customer_id: input.customer_id, p_seller_id: input.seller_id, p_items: input.items,
+          p_payment_method: input.status === 'pagada' ? input.method : null, p_status: input.status, p_notes: input.notes.trim() || null,
+        });
+        if (error) throw error;
+        return String(data);
+      },
+      async registerOrder(input: { customer_id: string; seller_id: string; items: Array<{ product_id: string; quantity: number }>; notes: string }) {
+        const { data, error } = await supabase.rpc('register_order', {
+          p_customer_id: input.customer_id, p_seller_id: input.seller_id, p_items: input.items, p_notes: input.notes.trim() || null,
+        });
+        if (error) throw error;
+        return String(data);
+      },
+      async updateOrderStatus(id: string, status: 'confirmado' | 'preparando' | 'cancelado', notes = '') {
+        const { error } = await supabase.rpc('update_order_status', { p_order_id: id, p_status: status, p_notes: notes.trim() || null });
+        if (error) throw error;
+      },
+      async convertOrderToSale(id: string, status: 'pendiente' | 'pagada', method: 'efectivo' | 'tarjeta' | 'transferencia' | 'yape' | 'plin' | 'otro') {
+        const { data, error } = await supabase.rpc('convert_order_to_sale', {
+          p_order_id: id, p_payment_method: status === 'pagada' ? method : null,
+        });
+        if (error) throw error;
+        return String(data);
+      },
+      async registerPayment(id: string, method: 'efectivo' | 'tarjeta' | 'transferencia' | 'yape' | 'plin' | 'otro', reference: string) {
+        const { data, error } = await supabase.rpc('register_sale_payment', { p_sale_id: id, p_method: method, p_reference: reference.trim() || null });
+        if (error) throw error;
+        return String(data);
+      },
+      async cancelSale(id: string, reason: string) {
+        const { error } = await supabase.rpc('cancel_sale', { p_sale_id: id, p_reason: reason.trim() });
+        if (error) throw error;
+      },
+    } : undefined;
+    window.salesiaOperationsApi = operationsApi;
     return () => {
       window.salesiaOpenCreateUser = undefined;
       if (window.salesiaMaintenanceApi === maintenanceApi) window.salesiaMaintenanceApi = undefined;
+      if (window.salesiaInventoryApi === inventoryApi) window.salesiaInventoryApi = undefined;
+      if (window.salesiaOperationsApi === operationsApi) window.salesiaOperationsApi = undefined;
     };
   }, [accounts, profile, session, companyName, isAdmin]);
 
@@ -311,7 +419,7 @@ export default function App() {
     <Sidebar companyName={companyName} />
     <div className="shell">
       <Topbar name={profile?.full_name || session?.user.email || 'Usuario'} email={profile?.email || session?.user.email || ''} role={roleLabels[profile?.role_key || ''] || 'Usuario'} isAdmin={isAdmin} onLogout={signOut} />
-      <div className="migration-note"><strong>Sesión protegida con Supabase.</strong> Mantenimiento consulta y guarda Categorías, Clientes, Productos y Vendedores en Supabase. Ventas, Pedidos, Inventario, Analítica, Insights y Reportes siguen pendientes de migración; no uses sus datos de demostración como operaciones reales.</div>
+      <div className="migration-note"><strong>Sesión protegida con Supabase.</strong> Mantenimiento, Pedidos, Ventas, Pagos e Inventario están conectados a Supabase. Los módulos de analítica, insights y reportes aún deben revisarse para completar la migración; no uses sus historiales locales como datos empresariales oficiales.</div>
       <main id="content" tabIndex={-1}>
         {authError && <div className="callout" role="status">{authError}</div>}
         {engineError && <section className="panel" role="alert"><div className="panel-body"><h2>No se pudo iniciar SalesIA</h2><p className="description">Actualiza la página. Si el problema continúa, revisa la consola del navegador.</p></div></section>}
