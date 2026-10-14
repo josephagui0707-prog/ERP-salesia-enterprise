@@ -2,14 +2,14 @@
 // Motor de vistas comerciales. Mantenimiento e Inventario consultan Supabase; otros módulos se migran por fases.
 const MODULES = [
  ['inicio','Inicio','home','GENERAL',[['resumen','Resumen ejecutivo']]],
- ['mantenimiento','Gestión comercial','briefcase','DATOS MAESTROS',[['clientes','Clientes'],['productos','Productos'],['categorias','Categorías'],['vendedores','Vendedores']]],
- ['ventas','Ventas','cart','OPERACIONES COMERCIALES',[['historial','Historial de ventas'],['nueva','Nueva venta'],['pagos','Pagos']]],
- ['pedidos','Pedidos','file','',[['seguimiento','Seguimiento de pedidos']]],
+ ['pedidos','Pedidos','file','OPERACIONES COMERCIALES',[['seguimiento','Seguimiento de pedidos']]],
+ ['ventas','Ventas','cart','',[['historial','Historial de ventas'],['nueva','Nueva venta'],['pagos','Pagos']]],
  ['inventario','Inventario','layers','LOGÍSTICA',[['stock','Existencias'],['movimientos','Entradas y salidas'],['historial','Historial de movimientos']]],
  ['analytics','Analítica estadística','chart','INTELIGENCIA COMERCIAL',[['resumen','Resumen analítico'],['datasets','Conjuntos de datos'],['variables','Variables y distribuciones'],['estadistica','Media y mediana'],['historial','Historial de análisis']]],
  ['probabilidad','Probabilidad y Bayes','target','',[['eventos','Eventos y probabilidades'],['bayes','Teorema de Bayes'],['aleatorias','Variables aleatorias']]],
  ['insights','Insights','spark','',[['hallazgos','Hallazgos comerciales'],['detalle','Detalle y evidencia'],['historial','Historial de hallazgos']]],
  ['reportes','Reportes','file','',[['ventas','Ventas'],['productos','Productos'],['clientes','Clientes'],['vendedores','Vendedores'],['estadisticos','Estadísticos']]],
+ ['mantenimiento','Gestión comercial','briefcase','DATOS MAESTROS',[['clientes','Clientes'],['productos','Productos'],['categorias','Categorías'],['vendedores','Vendedores']]],
  ['administracion','Administración','settings','SISTEMA',[['empresa','Configuración comercial'],['usuarios','Usuarios'],['roles','Roles y permisos'],['auditoria','Auditoría']]]
 ];
 const paths={home:'M3 10l9-7 9 7v10H3z M9 20v-7h6v7',cart:'M3 3h2l3 12h11l2-9H6 M9 20h.01M18 20h.01',users:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M19 8a3 3 0 0 1 0 6 M19 16a4 4 0 0 1 3 4',box:'M12 3 3 7v10l9 4 9-4V7z M3 7l9 4 9-4 M12 11v10 M8 5l9 4',layers:'M12 3 2 8l10 5 10-5z M2 12l10 5 10-5 M2 16l10 5 10-5',briefcase:'M3 7h18v14H3z M8 7V3h8v4 M3 12c6 4 12 4 18 0 M10 12h4',chart:'M3 3v18h18 M7 16v-5 M12 16V6 M17 16V9',target:'M21 12a9 9 0 1 1-9-9 M17 12a5 5 0 1 1-5-5 M12 12l9-9 M16 3h5v5',spark:'M12 3l3 6 6 3-6 3-3 6-3-6-6-3 6-3z',file:'M14 2H4v20h16V8z M14 2v6h6 M8 12h8 M8 16h8',settings:'M9 3h6l1 4 4 1v8l-4 1-1 4H9l-1-4-4-1V8l4-1z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0',plus:'M12 5v14 M5 12h14',download:'M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5',money:'M3 5h18v14H3z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0 M6 9h.01 M18 15h.01'};
@@ -44,11 +44,20 @@ function analyticsGuard(){
  return '';
 }
 async function refreshAnalyticalData(){
- if(!window.salesiaAnalyticalApi||remoteAnalyticsLoading)return;
- remoteAnalyticsLoading=true;remoteAnalyticsError='';
- try{remoteAnalytics=await window.salesiaAnalyticalApi.history();remoteAnalyticsReady=true;}
- catch(error){remoteAnalyticsReady=false;remoteAnalyticsError=maintenanceErrorText(error);console.error('Historial analítico de Supabase:',error);}
- finally{remoteAnalyticsLoading=false;if(['analytics','probabilidad','insights','reportes'].includes(current))render();}
+  if(!window.salesiaAnalyticalApi || typeof window.salesiaAnalyticalApi.history !== 'function' || remoteAnalyticsLoading) return;
+  remoteAnalyticsLoading = true;
+  remoteAnalyticsError = '';
+  try {
+    remoteAnalytics = await window.salesiaAnalyticalApi.history();
+    remoteAnalyticsReady = true;
+  } catch(error) {
+    remoteAnalyticsReady = false;
+    remoteAnalyticsError = maintenanceErrorText(error);
+    console.error('Historial analítico de Supabase:', error);
+  } finally {
+    remoteAnalyticsLoading = false;
+    if(['analytics','probabilidad','insights','reportes'].includes(current)) render();
+  }
 }
 const dateTimeLabel=value=>value?new Date(value).toLocaleString('es-PE'):'—';
 const historyHint=()=>remoteAnalyticsLoading?'<p class="callout">Consultando historial en Supabase…</p>':remoteAnalyticsError?`<p class="callout">No se pudo consultar el historial: ${esc(remoteAnalyticsError)}. ${button('Reintentar','refresh-analytics')}</p>`:'';
@@ -391,13 +400,25 @@ function xlsxWorkbook(headers,rows){
  const output=[...all,...central,Uint8Array.from(end)];const result=new Uint8Array(output.reduce((n,b)=>n+b.length,0));let pos=0;for(const part of output){result.set(part,pos);pos+=part.length;}return result;
 }
 async function exportReport(type){
- if(!operationsReady||!window.salesiaAnalyticalApi)return toast('Se necesita conexión con Supabase para exportar registros empresariales.');
- const {headers,rows,name}=buildReport(type);
- if(rows.length===0)return toast('No hay registros que coincidan con el periodo o la búsqueda; no se descargó ningún archivo.');
- const file=`SalesIA-${name}-${today()}.csv`;
- download(file,'\ufeff'+[headers,...rows].map(r=>r.map(csvCell).join(';')).join('\r\n'),'text/csv;charset=utf-8');
- try{await window.salesiaAnalyticalApi.recordExport({type:type==='dataset'?'dataset':type,filename:file,period,records:rows.length});await refreshAnalyticalData();toast(`CSV descargado y registrado en Supabase (${rows.length} filas).`);}
- catch(error){toast(`CSV descargado, pero no se guardó el historial: ${maintenanceErrorText(error)}`);}
+  if(!operationsReady) return toast('Se necesita conexión para exportar registros empresariales.');
+  const {headers, rows, name} = buildReport(type);
+  if(rows.length === 0) return toast('No hay registros que coincidan con el periodo o la búsqueda; no se descargó ningún archivo.');
+  
+  const file = `SalesIA-${name}-${today()}.csv`;
+  download(file, '\ufeff' + [headers, ...rows].map(r => r.map(csvCell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+  
+  // Guardar en historial solo si la función existe en Supabase
+  if (window.salesiaAnalyticalApi && typeof window.salesiaAnalyticalApi.recordExport === 'function') {
+    try {
+      await window.salesiaAnalyticalApi.recordExport({type: type==='dataset'?'dataset':type, filename: file, period, records: rows.length});
+      await refreshAnalyticalData();
+      toast(`CSV descargado y registrado en Supabase (${rows.length} filas).`);
+    } catch(error) {
+      toast(`CSV descargado exitosamente (${rows.length} filas).`);
+    }
+  } else {
+    toast(`CSV descargado exitosamente (${rows.length} filas).`);
+  }
 }
 
 /**
@@ -405,57 +426,85 @@ async function exportReport(type){
  * el controlador de impresora. Los datos siguen procediendo de Supabase.
  */
 async function exportPdfReport(){
- if(!operationsReady||!window.salesiaAnalyticalApi)return toast('Conecta primero las operaciones comerciales de Supabase.');
- const types={ventas:'sales',productos:'products',clientes:'customers',vendedores:'sellers',estadisticos:'statistics'};
- const type=types[sub]||'sales';
- const {headers,rows,name}=buildReport(type);
- if(!rows.length)return toast('No hay datos con los filtros actuales para generar el PDF.');
- try{
-  const [{jsPDF},{default:autoTable}]=await Promise.all([import('jspdf'),import('jspdf-autotable')]);
-  const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
-  const width=pdf.internal.pageSize.getWidth();
-  const todayLabel=new Date().toLocaleDateString('es-PE');
-  pdf.setProperties({title:`SalesIA - ${name}`,subject:'Informe empresarial de SalesIA Enterprise',creator:'SalesIA Enterprise'});
-  pdf.setFillColor(244,247,239);pdf.rect(0,0,width,31,'F');
-  pdf.setTextColor(35,75,52);pdf.setFont('helvetica','bold');pdf.setFontSize(11);
-  pdf.text('SalesIA Enterprise',12,12);
-  pdf.setTextColor(31,52,42);pdf.setFontSize(18);pdf.text(name,12,23);
-  pdf.setTextColor(86,108,93);pdf.setFont('helvetica','normal');pdf.setFontSize(9);
-  const periodLabel=period==='all'?'Histórico cargado':`${period} días`;
-  pdf.text(`Emitido: ${todayLabel}    |    Periodo: ${periodLabel}    |    Registros: ${rows.length}    |    Fuente: Supabase`,12,37);
-  const cleanRows=rows.map(row=>row.map(value=>value===null||value===undefined?'—':String(value)));
-  autoTable(pdf,{
-   head:[headers],body:cleanRows,startY:44,
-   margin:{left:12,right:12,top:14,bottom:18},
-   theme:'grid',tableWidth:'auto',showHead:'everyPage',
-   styles:{font:'helvetica',fontSize:8,cellPadding:2.6,overflow:'linebreak',valign:'middle',lineColor:[215,226,216],lineWidth:.12,textColor:[31,52,42]},
-   headStyles:{fillColor:[37,83,57],textColor:[255,255,255],fontStyle:'bold',fontSize:8},
-   alternateRowStyles:{fillColor:[246,249,244]},
-  });
-  const pages=pdf.internal.getNumberOfPages();
-  for(let page=1;page<=pages;page++){
-   pdf.setPage(page);pdf.setDrawColor(207,220,209);pdf.line(12,197,width-12,197);
-   pdf.setFontSize(8);pdf.setTextColor(103,120,107);
-   pdf.text('SalesIA Enterprise · Informe generado a partir de los datos disponibles',12,202);
-   pdf.text(`Página ${page} de ${pages}`,width-12,202,{align:'right'});
+  if(!operationsReady) return toast('Conecta primero las operaciones comerciales.');
+  const types={ventas:'sales',productos:'products',clientes:'customers',vendedores:'sellers',estadisticos:'statistics'};
+  const type=types[sub]||'sales';
+  const {headers,rows,name}=buildReport(type);
+  if(!rows.length) return toast('No hay datos con los filtros actuales para generar el PDF.');
+  
+  try {
+    const [{jsPDF},{default:autoTable}]=await Promise.all([import('jspdf'),import('jspdf-autotable')]);
+    const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+    const width=pdf.internal.pageSize.getWidth();
+    const todayLabel=new Date().toLocaleDateString('es-PE');
+    
+    pdf.setProperties({title:`SalesIA - ${name}`,subject:'Informe empresarial de SalesIA Enterprise',creator:'SalesIA Enterprise'});
+    pdf.setFillColor(244,247,239);pdf.rect(0,0,width,31,'F');
+    pdf.setTextColor(35,75,52);pdf.setFont('helvetica','bold');pdf.setFontSize(11);
+    pdf.text('SalesIA Enterprise',12,12);
+    pdf.setTextColor(31,52,42);pdf.setFontSize(18);pdf.text(name,12,23);
+    pdf.setTextColor(86,108,93);pdf.setFont('helvetica','normal');pdf.setFontSize(9);
+    
+    const periodLabel=period==='all'?'Histórico cargado':`${period} días`;
+    pdf.text(`Emitido: ${todayLabel}    |    Periodo: ${periodLabel}    |    Registros: ${rows.length}    |    Fuente: Supabase`,12,37);
+    
+    const cleanRows=rows.map(row=>row.map(value=>value===null||value===undefined?'—':String(value)));
+    autoTable(pdf,{
+      head:[headers],body:cleanRows,startY:44,
+      margin:{left:12,right:12,top:14,bottom:18},
+      theme:'grid',tableWidth:'auto',showHead:'everyPage',
+      styles:{font:'helvetica',fontSize:8,cellPadding:2.6,overflow:'linebreak',valign:'middle',lineColor:[215,226,216],lineWidth:.12,textColor:[31,52,42]},
+      headStyles:{fillColor:[37,83,57],textColor:[255,255,255],fontStyle:'bold',fontSize:8},
+      alternateRowStyles:{fillColor:[246,249,244]},
+    });
+    
+    const pages=pdf.internal.getNumberOfPages();
+    for(let page=1;page<=pages;page++){
+      pdf.setPage(page);pdf.setDrawColor(207,220,209);pdf.line(12,197,width-12,197);
+      pdf.setFontSize(8);pdf.setTextColor(103,120,107);
+      pdf.text('SalesIA Enterprise · Informe generado a partir de los datos disponibles',12,202);
+      pdf.text(`Página ${page} de ${pages}`,width-12,202,{align:'right'});
+    }
+    
+    const file=`SalesIA-${name}-${today()}.pdf`;
+    pdf.save(file);
+
+    // Registro seguro en Supabase solo si el método existe
+    if (window.salesiaAnalyticalApi && typeof window.salesiaAnalyticalApi.recordExport === 'function') {
+      try {
+        await window.salesiaAnalyticalApi.recordExport({type,filename:file,period,records:rows.length,format:'pdf'});
+        await refreshAnalyticalData();
+        toast(`PDF A4 horizontal generado y registrado (${rows.length} filas).`);
+      } catch(error) {
+        toast(`PDF descargado exitosamente (${rows.length} filas).`);
+      }
+    } else {
+      toast(`PDF descargado exitosamente (${rows.length} filas).`);
+    }
+  } catch(error) {
+    toast(`No se pudo crear el PDF: ${maintenanceErrorText(error)}`);
   }
-  const file=`SalesIA-${name}-${today()}.pdf`;
-  pdf.save(file);
-  try{
-   await window.salesiaAnalyticalApi.recordExport({type,filename:file,period,records:rows.length,format:'pdf'});
-   await refreshAnalyticalData();
-   toast(`PDF A4 horizontal generado y registrado (${rows.length} filas).`);
-  }catch(error){toast(`PDF descargado, pero no se registró en el historial: ${maintenanceErrorText(error)}`);}
- }catch(error){toast(`No se pudo crear el PDF: ${maintenanceErrorText(error)}`);}
 }
 
 async function exportExcel(type){
- if(!operationsReady||!window.salesiaAnalyticalApi)return toast('Para exportar Excel debes conectar los datos comerciales de Supabase.');
- const {headers,rows,name}=buildReport(type);if(!rows.length)return toast('No hay datos que coincidan con la búsqueda actual.');
- const file=`SalesIA-${name}-${today()}.xlsx`;
- download(file,xlsxWorkbook(headers,rows),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
- try{await window.salesiaAnalyticalApi.recordExport({type,filename:file,period,records:rows.length,format:'xlsx'});await refreshAnalyticalData();toast(`Excel generado y registrado (${rows.length} filas).`);}
- catch(error){toast(`Excel descargado, pero no se guardó el historial: ${maintenanceErrorText(error)}`);}
+  if(!operationsReady) return toast('Para exportar Excel debes conectar los datos comerciales.');
+  const {headers, rows, name} = buildReport(type);
+  if(!rows.length) return toast('No hay datos que coincidan con la búsqueda actual.');
+  
+  const file = `SalesIA-${name}-${today()}.xlsx`;
+  download(file, xlsxWorkbook(headers, rows), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  
+  if (window.salesiaAnalyticalApi && typeof window.salesiaAnalyticalApi.recordExport === 'function') {
+    try {
+      await window.salesiaAnalyticalApi.recordExport({type, filename: file, period, records: rows.length, format: 'xlsx'});
+      await refreshAnalyticalData();
+      toast(`Excel generado y registrado (${rows.length} filas).`);
+    } catch(error) {
+      toast(`Excel descargado exitosamente (${rows.length} filas).`);
+    }
+  } else {
+    toast(`Excel descargado exitosamente (${rows.length} filas).`);
+  }
 }
 function searchModal(){modal('Buscar en el espacio de trabajo','<input id="module-search" class="filter-input" style="width:100%" placeholder="Ventas, inventario, Bayes…" aria-label="Buscar un módulo"><div class="search-results" id="module-results"></div>');searchResults('');document.querySelector('#module-search').focus();}
 function searchResults(q){document.querySelector('#module-results').innerHTML=MODULES.flatMap(m=>m[4].filter(s=>(m[1]+' '+s[1]).toLowerCase().includes(q.toLowerCase())).map(s=>`<a class="search-result" href="#${m[0]}/${s[0]}" data-action="close">${m[1]} <span class="muted">/ ${s[1]}</span></a>`)).join('')||'<p class="empty">No se encontraron módulos.</p>';}

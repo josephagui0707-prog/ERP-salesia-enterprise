@@ -1,8 +1,3 @@
-// Configuración de la URL base del Backend en Python
-const PYTHON_API_URL =
-  import.meta.env.VITE_PYTHON_BACKEND_URL ||
-  "https://erp-salesia-backend.onrender.com";
-
 export interface SummaryStats {
   count: number;
   mean: number;
@@ -19,60 +14,44 @@ export interface BayesResult {
 }
 
 /**
- * Envía datos numéricos al backend de Python para obtener un resumen estadístico.
+ * Cálculo directo en JS (sin necesidad de servidor Python)
  */
 export async function getStatisticalSummary(data: number[]): Promise<SummaryStats | null> {
-  try {
-    const response = await fetch(`${PYTHON_API_URL}/api/statistics/summarize`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ data }),
-    });
+  if (!data || data.length === 0) return null;
 
-    if (!response.ok) {
-      throw new Error(`Error en el servidor de analítica: ${response.statusText}`);
-    }
+  const count = data.length;
+  const mean = data.reduce((a, b) => a + b, 0) / count;
 
-    return await response.json();
-  } catch (error) {
-    console.error("Error consultando el backend de Python (summarize):", error);
-    return null;
-  }
+  const sorted = [...data].sort((a, b) => a - b);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+
+  const mid = Math.floor(count / 2);
+  const median = count % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+
+  const variance = data.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / count;
+  const std_dev = Math.sqrt(variance);
+
+  return { count, mean, std_dev, min, max, median };
 }
 
 /**
- * Envía datos de inferencia Bayesiana al backend de Python.
+ * Inferencia Bayesiana Beta-Binomial directa en JS
  */
 export async function getBayesianInference(
   prior: { alpha: number; beta: number },
   observations: number[]
 ): Promise<BayesResult | null> {
-  try {
-    const response = await fetch(`${PYTHON_API_URL}/api/statistics/bayes`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prior, observations }),
-    });
+  const successes = observations.filter(x => x === 1).length;
+  const failures = observations.length - successes;
 
-    if (!response.ok) {
-      throw new Error(`Error en el servidor de analítica: ${response.statusText}`);
-    }
+  const posterior_a = (prior.alpha || 1) + successes;
+  const posterior_b = (prior.beta || 1) + failures;
+  const mean_probability = posterior_a / (posterior_a + posterior_b);
 
-    return await response.json();
-  } catch (error) {
-    console.error("Error consultando el backend de Python (bayes):", error);
-    return null;
-  }
+  return { posterior_a, posterior_b, mean_probability };
 }
 
-/**
- * Factoría para crear los servicios analíticos.
- * Acepta cualquier argumento opcional para adaptarse a lo que pase App.tsx
- */
 export function createAnalyticalServices(..._args: any[]) {
   return {
     getSummary: getStatisticalSummary,
@@ -80,20 +59,9 @@ export function createAnalyticalServices(..._args: any[]) {
   };
 }
 
-/**
- * Factoría para crear servicios de datos públicos.
- * Acepta cualquier argumento opcional para adaptarse a lo que pase App.tsx
- */
 export function createPublicDataServices(..._args: any[]) {
   return {
-    apiUrl: PYTHON_API_URL,
-    isOnline: async () => {
-      try {
-        const res = await fetch(`${PYTHON_API_URL}/`);
-        return res.ok;
-      } catch {
-        return false;
-      }
-    },
+    apiUrl: 'local',
+    isOnline: async () => true,
   };
 }
