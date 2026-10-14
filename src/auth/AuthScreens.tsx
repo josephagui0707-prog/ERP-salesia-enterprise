@@ -77,7 +77,7 @@ export default function AuthScreens({ mode, busy, error, profile, onLogin, onSet
             <span className="relay-auth-header-right">SalesIA / Workspace</span>
           </header>
           <div className="relay-auth-inner">
-            <p className="relay-auth-step">{mode === 'login' ? '01 / INICIAR SESIÓN' : mode === 'setup' ? '02 / CONFIGURACIÓN' : '03 / SEGURIDAD'}</p>
+            <p className="relay-auth-step">{mode === 'login' ? '' : mode === 'setup' ? '02 / CONFIGURACIÓN' : '03 / SEGURIDAD'}</p>
             <h1 id="relay-form-heading">{titles[mode][0]}</h1>
             <p className="relay-auth-description">{titles[mode][1]}</p>
             {mode === 'login' && <p className="relay-auth-notice">Las cuentas se crean y administran desde SalesIA. No hay registro público.</p>}
