@@ -1,0 +1,55 @@
+SALESIA ENTERPRISE — VERSION FINAL DE DISENO
+Personas 2, 4 y 5 | React + TypeScript + Supabase | 13/10/2026
+
+CAMBIOS DE ESTA VERSION
+- Login renovado con la composición de Colorlib Login Page V08.
+- Mascota original de carrito sonriente creada con SVG; no usa imágenes IA.
+- Estilo coherente en todos los módulos: navegación, tarjetas, tablas,
+  formularios, botones, indicadores y ventanas.
+- Mantiene todas las funciones y consultas Supabase de la V2.
+- Excel XLSX con filtros de encabezado, columnas ajustadas, fila inmovilizada
+  y formato monetario.
+- Estilos de impresión separados: A4 horizontal, tablas sin scrollbar,
+  sin navegación/alerta de conexión y encabezado empresarial.
+
+COMO EJECUTAR EN WINDOWS
+1) Extrae este ZIP completo.
+2) Abre la carpeta ERP-salesia-enterprise-main en VS Code.
+3) Copia el archivo .env que FUNCIONABA en tu V2 (junto a package.json).
+   Si no lo tienes, copia .env.example a .env y coloca exclusivamente la
+   URL y la clave PUBLICA de Supabase, nunca la service_role o secret.
+4) En terminal:
+      npm ci
+      npm run dev
+5) Abre la URL local que indique Vite (5173, 5174 u otra).
+6) Verifica inicio de sesión, Reportes -> Ventas, Excel y PDF,
+   e Inventario -> Registrar movimiento SIN confirmar cambios.
+7) Para comprobar antes de GitHub:
+      npm run build
+      npm run test:legacy
+      npm run test:analytics
+      npm run test:v2
+      npm run test:final
+
+AVISO
+- No se ha modificado Supabase, ni se han aplicado migraciones SQL.
+- No hay .env ni contraseñas dentro del ZIP.
+- NO subas a GitHub el .env.
+- Render Static Site mantiene React y Supabase: no necesita un servidor extra.
+- El código Python/Pyodide y sus historiales funcionan como en la V2.
+- FastAPI en la carpeta backend es una referencia local independiente;
+  no se debe afirmar que corre en Render Static Site.
+- No se pudieron instalar dependencias npm ni completar el build aquí
+  por limitaciones del entorno; debes ejecutar npm ci y npm run build en
+  tu PC ANTES de subir tu rama. Las pruebas sin dependencias sí pasan.
+- Para el PDF: la hoja solicita orientación horizontal A4 y elimina las
+  barras de desplazamiento. Comprueba la vista previa de Chrome localmente.
+
+LICENCIAS / RECURSOS
+- Diseño de acceso inspirado en la plantilla suministrada por el usuario:
+  Colorlib Login Page V08 (licencia de uso personal y comercial, atribución
+  apreciada): https://colorlib.com/wp/template/login-page-08/
+- Identidad de colores y recursos previamente adaptados de la plantilla
+  corporativa compartida por el usuario (solo archivos ya presentes en V2).
+- SVG de carrito: dibujo vectorial propio incorporado en código.
+- Este ZIP NO incluye archivos de fuentes tipográficas.

@@ -1,0 +1,16 @@
+SALESIA ENTERPRISE — Tema Relay Auth
+
+Esta versión adapta la plantilla Colorlib Relay Auth aportada por el usuario al inicio de sesión y al sistema completo.
+
+1. Abre la carpeta junto a package.json en Visual Studio Code.
+2. Copia TU ARCHIVO .env de la versión anterior o crea uno desde .env.example.
+   NUNCA publiques service_role ni claves secret.
+3. Ejecuta npm ci, npm run dev.
+4. Prueba login, dashboard, Gestión comercial, Inventario, Analítica, Bayes, Insights y Reportes.
+5. Antes de subir tu rama, ejecuta npm run build.
+
+No se requieren tablas SQL nuevas ni un backend adicional. No se ha realizado ninguna escritura en Supabase.
+
+Para revisar los cambios globales de CSS mira src/styles/relay-salesia.css.
+Para el login mira src/auth/AuthScreens.tsx.
+Lee docs/ATTRIBUCION_COLORLIB_RELAY_AUTH.md para detalles de licencia.

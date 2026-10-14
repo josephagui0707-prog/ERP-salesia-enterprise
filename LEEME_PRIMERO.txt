@@ -1,0 +1,28 @@
+SALESIA ENTERPRISE — MEJORAS PERSONAS 2, 4 Y 5
+
+1) Descomprime el ZIP y abre la carpeta ERP-salesia-enterprise-main en VS Code.
+2) Instala Node.js 20.19 o posterior (o Node.js 22.12+).
+3) Abre una terminal en esa carpeta y ejecuta: npm ci
+4) Copia .env.example a .env (Windows: copy .env.example .env).
+5) Rellena VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY con los
+   valores PÚBLICOS del proyecto que utiliza tu compañero.
+   NO coloques service_role ni contraseñas de Supabase en estos archivos.
+6) Ejecuta: npm run dev
+7) Entra a la dirección local que muestra Vite e inicia sesión con
+   una cuenta existente y autorizada de la empresa.
+8) Para comprobar la compilación: npm run build
+9) Para pruebas locales: npm run test:legacy && npm run test:analytics
+10) Para probar Python sin servidor: python -m unittest discover -s backend/tests -v
+
+IMPORTANTE:
+- No apliques migraciones SQL automáticamente. El ZIP reutiliza las tablas.
+  Incluye una migración OPCIONAL de permisos de historial de reportes;
+  consúltala con tu compañero antes de ejecutar.
+- Una rama de Git protege el código, NO los datos compartidos de Supabase.
+- El motor Python en navegador se descarga opcionalmente desde CDN al
+  pulsar "Verificar con Python", sin registrarse, y requiere internet.
+- La API FastAPI incluida en backend/ es un ejemplo académico independiente.
+  Render Static Site NO la ejecuta y no está integrada como backend remoto.
+- Las APIs gratuitas de feriados y divisas se consultan solo al pulsar sus botones.
+- Los cálculos y los reportes emplean una muestra acotada de ventas recientes.
+- Lee docs/MEJORAS_PERSONAS_2_4_5.md antes de subir tu rama.

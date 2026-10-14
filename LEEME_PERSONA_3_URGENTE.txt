@@ -1,0 +1,47 @@
+SalesIA Enterprise — PERSONA 3 / Ventas, Pedidos y Pagos
+
+Se conservaron todas las funcionalidades de Personas 2, 4 y 5 y la plantilla Relay Auth.
+Se integró la versión de app.js que ya genera PDF automáticamente.
+
+PARA EJECUTAR DESDE CERO EN VS CODE:
+1. Abrir ERP-salesia-enterprise-main en VS Code.
+2. Copiar el .env de tu proyecto anterior y nunca subirlo a GitHub.
+3. En la terminal ejecutar en este orden:
+   npm install
+   npm run build
+   npm run dev
+4. Abrir la dirección local de Vite.
+
+SI YA TENÍAS LA VERSIÓN RELAY FUNCIONANDO Y PREFIERES COPIAR SOLO LOS CAMBIOS:
+- src/App.tsx
+- src/legacy/app.js
+- src/styles/relay-salesia.css
+Entonces ejecuta npm install jspdf jspdf-autotable y npm run build.
+
+PERSONA 3 — NUEVAS MEJORAS:
+- Ventas: indicadores de historial, cobradas, por cobrar y anuladas.
+- Vista previa de líneas de ventas: agrupación de productos repetidos, importe por producto,
+  stock actual, validación de cantidades y bloqueo visual si falta stock.
+- Detalle de venta: productos, subtotal, descuento aplicado (si lo hay en la BD), impuestos,
+  total y pagos asociados.
+- Pedidos: indicadores por estado, detalle de pedido y conversión a venta con la RPC existente.
+- Pagos: historial, saldo pendiente y cobro completo mediante la función de Supabase existente.
+- Sigue disponible el PDF descargable desde Reportes sin configurar la impresora.
+
+BASE DE DATOS:
+No se ha aplicado ninguna migración ni se han creado nuevas tablas; se reutilizan las RPC
+register_sale, register_order, convert_order_to_sale, update_order_status y
+register_sale_payment. Los descuentos NO se pueden aplicar desde el formulario todavía:
+register_sale en el esquema compartido calcula subtotal=total y descuento=0. El detalle
+muestra el descuento realmente registrado. Para ofrecer descuentos de verdad se necesita
+una modificación SQL autorizada, que NO debe improvisarse sobre la base de producción.
+
+PRUEBAS EN EL NAVEGADOR SIN MODIFICAR LA BD:
+- Ventas > Nueva venta: cambiar cantidad a 9999, debe alertar por falta de stock.
+- Ventas > Historial: abrir detalle de la venta existente y ver sus pagos.
+- Pedidos: abrir detalle de un pedido existente (si hay registros).
+- Ventas > Pagos: revisar cobros y pendientes.
+- No pulses Registrar venta / Confirmar cobro / Convertir pedido sin permiso del compañero.
+
+NOTA: La compilación npm completa se debe confirmar en tu computadora. Aquí se ejecutó
+node --check y las pruebas automáticas locales; no se tuvo acceso a tu Supabase real.

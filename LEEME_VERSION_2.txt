@@ -1,0 +1,60 @@
+SALESIA ENTERPRISE - VERSION 2 DE PRUEBA (Personas 2, 4 y 5)
+=========================================================
+
+Se desarrolla sobre la primera versión funcional que ya probaste.
+NO se ha conectado ni alterado tu Supabase real desde la preparación del ZIP.
+NO se han agregado migraciones obligatorias, tablas ni servicios adicionales.
+NO se incluye ningún usuario, contraseña, service_role ni archivo .env privado.
+
+CAMBIOS PRINCIPALES
+- Inventario: vista previa del movimiento (entrada, salida, ajuste),
+  cálculo de saldo y aviso de stock mínimo antes de confirmar.
+  Sigue utilizando la RPC transaccional de PostgreSQL existente.
+- Analítica: frecuencias empíricas y gráfico de unidades por venta,
+  complementarios al cálculo de media, mediana y Python con Pyodide.
+- Insights: reglas explicables adicionales de concentración por
+  producto/cliente cuando haya 5 o más ventas y variedad suficiente;
+  evita interpretaciones estadísticas sobre una sola venta.
+- Reportes: vista previa, búsqueda, selector de periodo en ventas,
+  CSV filtrado, Excel XLSX nativo y vista de impresión PDF con datos
+  de Supabase. Sin APIs de pago ni librerías externas adicionales.
+- Visual: se conserva la adaptación de recursos de la plantilla comprada
+  y se eliminan mensajes antiguos sobre migraciones pendientes.
+
+PARA PROBARLO EN VS CODE
+1. Descomprime el ZIP; abre ERP-salesia-enterprise-main.
+2. Abre terminal en la carpeta que contiene package.json.
+3. Ejecuta npm ci
+4. Copia .env.example a .env y coloca:
+     VITE_SUPABASE_URL=<URL de tu proyecto>
+     VITE_SUPABASE_ANON_KEY=<publishable key pública de ese proyecto>
+   IMPORTANTE: no pongas service_role ni sb_secret. No subas .env a Git.
+5. Ejecuta npm run dev
+6. Verifica primero vistas y descargas; para una escritura de prueba
+   (como registrar un movimiento), coordina con el compañero.
+
+PRUEBAS EN TERMINAL
+  npm run test:legacy
+  npm run test:analytics
+  npm run test:v2
+  python -m unittest discover -s backend/tests -v
+  npm run build
+
+ADVERTENCIA COMPILACION
+Las pruebas JS y Python pasan en el entorno de preparación. La compilación
+completa de Vite/React no se pudo comprobar aquí porque las dependencias
+npm no pudieron descargarse. Debes ejecutar npm ci y npm run build en Windows.
+Si ves un error, envía el texto exacto de la terminal para corregirlo.
+
+NOTAS DE DATOS Y PRODUCCION
+- Muestra de consultas: últimas 300 ventas para la analítica en cliente.
+- Si hay más de 300, no presentes los totales como balance histórico
+  completo de toda la empresa.
+- Los movimientos de inventario reales se guardan en Supabase compartido.
+- El historial Excel/CSV utiliza report_exports y los permisos RLS activos.
+- XLSX y CSV se generan en el navegador sin enviar datos a terceros.
+- PDF se genera con 'Imprimir / Guardar como PDF' del navegador.
+- Python con Pyodide NO reemplaza un backend FastAPI desplegado.
+- El directorio backend/ contiene un ejemplo académico; Render Static Site
+  no ejecuta ese backend automáticamente.
+- No subas los cambios a main sin coordinar con tu compañero.
