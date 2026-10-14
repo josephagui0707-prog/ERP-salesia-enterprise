@@ -52,20 +52,20 @@ export function createPublicDataServices() {
     async holidays(year: number) {
       if (!Number.isInteger(year) || year < 2020 || year > 2035) throw new Error('Año no admitido para feriados.');
       if (holidayCache.has(year)) return holidayCache.get(year)!;
-      const response = await fetch(`https://nagerholidays.com{year}`, { signal: AbortSignal.timeout(9500) });
+      const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/PE`, { signal: AbortSignal.timeout(9500) });
       if (!response.ok) throw new Error('El servicio de feriados no está disponible.');
       const raw: unknown = await response.json();
       if (!Array.isArray(raw)) throw new Error('Respuesta inesperada del servicio de feriados.');
       const holidays = raw.filter((h: unknown): h is { date: string; name: string } => !!h && typeof h === 'object' && 'date' in h && 'name' in h && typeof h.date === 'string' && typeof h.name === 'string')
-        .filter(h => /^\d{4}-\d{2}-\d{2}\$/.test(h.date)).slice(0, 50);
+        .filter(h => /^\d{4}-\d{2}-\d{2}$/.test(h.date)).slice(0, 50);
       holidayCache.set(year, holidays);
       return holidays;
     },
     async currency() {
       if (fxCache && Date.now() - fxFetchedAt < 4 * 60 * 60 * 1000) return fxCache;
       const urls = [
-        'https://jsdelivr.net',
-        'https://pages.dev',
+        'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/pen.min.json',
+        'https://latest.currency-api.pages.dev/v1/currencies/pen.min.json',
       ];
       let lastError: unknown;
       for (const url of urls) {
