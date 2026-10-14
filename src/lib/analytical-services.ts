@@ -70,9 +70,10 @@ export async function getBayesianInference(
 }
 
 /**
- * Factoría para crear los servicios analíticos consumidos por App.tsx
+ * Factoría para crear los servicios analíticos.
+ * Acepta cualquier argumento opcional para adaptarse a lo que pase App.tsx
  */
-export function createAnalyticalServices() {
+export function createAnalyticalServices(..._args: any[]) {
   return {
     getSummary: getStatisticalSummary,
     getBayes: getBayesianInference,
@@ -80,9 +81,10 @@ export function createAnalyticalServices() {
 }
 
 /**
- * Factoría para crear servicios de datos públicos consumidos por App.tsx
+ * Factoría para crear servicios de datos públicos.
+ * Acepta cualquier argumento opcional para adaptarse a lo que pase App.tsx
  */
-export function createPublicDataServices() {
+export function createPublicDataServices(..._args: any[]) {
   return {
     apiUrl: PYTHON_API_URL,
     isOnline: async () => {
