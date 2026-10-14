@@ -68,3 +68,30 @@ export async function getBayesianInference(
     return null;
   }
 }
+
+/**
+ * Factoría para crear los servicios analíticos consumidos por App.tsx
+ */
+export function createAnalyticalServices() {
+  return {
+    getSummary: getStatisticalSummary,
+    getBayes: getBayesianInference,
+  };
+}
+
+/**
+ * Factoría para crear servicios de datos públicos consumidos por App.tsx
+ */
+export function createPublicDataServices() {
+  return {
+    apiUrl: PYTHON_API_URL,
+    isOnline: async () => {
+      try {
+        const res = await fetch(`${PYTHON_API_URL}/`);
+        return res.ok;
+      } catch {
+        return false;
+      }
+    },
+  };
+}
