@@ -1,37 +1,36 @@
-"""FastAPI optativa. NO se ejecuta en Render Static Site.
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.statistics import summarize, bayes
 
-Desplegar por separado solo si el docente requiere un servidor Python real;
-se entrega deshabilitada para datos empresariales hasta añadir JWT/RLS al backend.
-No incluir claves privadas de Supabase en esta API.
-"""
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
-from .statistics import summarize, bayes
+app = FastAPI(title="SalesIA Analytics Engine")
 
-app = FastAPI(title='SalesIA · Motor académico Python', version='1.0.0')
+# Configuración de CORS para permitir tu frontend de Render y desarrollo local
+origins = [
+    "https://erp-salesia-enterprise.onrender.com",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+]
 
-class StatsInput(BaseModel):
-    amounts: list[float] = Field(min_length=1, max_length=10000)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins, # O puedes usar ["*"] para permitir todos los orígenes
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-class BayesInput(BaseModel):
-    prior: float = Field(ge=0, le=1)
-    likelihood: float = Field(ge=0, le=1)
-    false_positive: float = Field(ge=0, le=1)
+@app.get("/")
+def read_root():
+    return {"status": "ok", "service": "SalesIA Analytics Engine"}
 
-@app.get('/health')
-def health():
-    return {'status': 'ok', 'service': 'motor-estadistico'}
+@app.post("/api/statistics/summarize")
+def api_summarize(payload: dict):
+    data = payload.get("data", [])
+    return summarize(data)
 
-@app.post('/statistics/summary')
-def summary(payload: StatsInput):
-    try:
-        return summarize(payload.amounts)
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
-
-@app.post('/probability/bayes')
-def probability(payload: BayesInput):
-    try:
-        return bayes(payload.prior, payload.likelihood, payload.false_positive)
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
+@app.post("/api/statistics/bayes")
+def api_bayes(payload: dict):
+    prior = payload.get("prior", {})
+    observations = payload.get("observations", [])
+    return bayes(prior, observations)
