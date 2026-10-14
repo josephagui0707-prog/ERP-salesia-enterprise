@@ -8,7 +8,7 @@ export const isSupabaseConfigured = Boolean(
 );
 
 export const supabase = createClient(
-  url || 'https://missing-project.supabase.co',
+  url || 'https://supabase.co',
   key || 'missing-anon-key',
   {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
