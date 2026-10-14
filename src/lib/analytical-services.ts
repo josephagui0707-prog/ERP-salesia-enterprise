@@ -52,10 +52,26 @@ export function createPublicDataServices() {
     async holidays(year: number) {
       if (!Number.isInteger(year) || year < 2020 || year > 2035) throw new Error('Año no admitido para feriados.');
       if (holidayCache.has(year)) return holidayCache.get(year)!;
-      const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/PE`, { signal: AbortSignal.timeout(9500) });
-      if (!response.ok) throw new Error('El servicio de feriados no está disponible.');
-      const raw: unknown = await response.json();
-      if (!Array.isArray(raw)) throw new Error('Respuesta inesperada del servicio de feriados.');
+      // Nager.Holidays migró de dominio en 2026. V4 es la API Community sin clave.
+      const endpoints = [
+        `https://nagerholidays.com/api/v4/Holidays/PE/${year}`,
+        `https://nagerholidays.com/api/v3/PublicHolidays/${year}/PE`,
+      ];
+      let raw: unknown = null;
+      for (const url of endpoints) {
+        try {
+          const response = await fetch(url, { signal: AbortSignal.timeout(9000) });
+          if (!response.ok) continue;
+          const result: unknown = await response.json();
+          if (Array.isArray(result)) {
+            raw = result;
+            break;
+          }
+        } catch {
+          // Un fallo temporal en una versión no bloquea el intento alternativo.
+        }
+      }
+      if (!Array.isArray(raw)) throw new Error('No se pudo conectar con la API de feriados. Comprueba tu conexión e intenta nuevamente.');
       const holidays = raw.filter((h: unknown): h is { date: string; name: string } => !!h && typeof h === 'object' && 'date' in h && 'name' in h && typeof h.date === 'string' && typeof h.name === 'string')
         .filter(h => /^\d{4}-\d{2}-\d{2}$/.test(h.date)).slice(0, 50);
       holidayCache.set(year, holidays);
